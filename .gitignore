@@ -13,3 +13,19 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Custom
+/main.go
+*.shp
+*.shx
+*dbf
+out
+out.*
+out2.*
+test
+test.*
+*.geojson
+/data
+gis-utils
+/clip-shapefile
+/.vscode
