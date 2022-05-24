@@ -2,7 +2,6 @@ package gis
 
 import (
 	"errors"
-	"fmt"
 	"image/color"
 
 	"github.com/tdewolff/canvas"
@@ -96,25 +95,59 @@ func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 
 func (img *Image) DrawPolygons(ways []*RichWay) {
 	for _, way := range ways {
+		highway := way.Way.TagMap()["highway"]
+		waterway := way.Way.TagMap()["waterway"]
+		footway := way.Way.TagMap()["footway"]
+		route := way.Way.TagMap()["route"]
+		area := way.Way.TagMap()["area"]
+
+		// Do not style lines here.
+		if len(highway) > 0 ||
+			len(route) > 0 ||
+			len(waterway) > 0 ||
+			(len(footway) > 0 &&
+				len(area) == 0) {
+			continue
+		}
+
 		var style *config.FeatureStyle
 
 		if img.Config != nil {
-			for _, tag := range way.Way.Tags {
-				if tag.Key == "website" || tag.Key == "name" {
-					continue
-				}
-
-				tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
-
-				if tempStyle != nil {
-					fmt.Println(tag, tempStyle)
-					style = tempStyle
-					break
-				}
-			}
+			style = img.getStyleFromTags(way)
 		}
 
-		fmt.Println(style, way)
+		if style != nil {
+			path := &canvas.Path{}
+
+			for i, point := range way.Points {
+				if i == 0 {
+					path.MoveTo(point.X, point.Y)
+				} else {
+					path.LineTo(point.X, point.Y)
+				}
+			}
+
+			strokeWidth := 0.0
+			strokeColor := &color.RGBA{0, 0, 0, 255}
+			fillColor := &color.RGBA{0, 0, 0, 255}
+
+			if style.StrokeWidth > 0 {
+				strokeWidth = style.StrokeWidth
+			}
+
+			if style.StrokeColor != "" {
+				strokeColor, _ = config.ParseColor(style.StrokeColor)
+			}
+
+			if style.FillColor != "" {
+				fillColor, _ = config.ParseColor(style.FillColor)
+			}
+
+			img.context.SetStrokeWidth(strokeWidth)
+			img.context.SetStrokeColor(*strokeColor)
+			img.context.SetFillColor(*fillColor)
+			img.context.DrawPath(0, 0, path)
+		}
 	}
 }
 
@@ -123,11 +156,13 @@ func (img *Image) DrawLines(ways []*RichWay) {
 		highway := way.Way.TagMap()["highway"]
 		waterway := way.Way.TagMap()["waterway"]
 		footway := way.Way.TagMap()["footway"]
+		route := way.Way.TagMap()["route"]
 		area := way.Way.TagMap()["area"]
 
 		if (len(highway) == 0 &&
 			len(footway) == 0 &&
-			len(waterway) == 0) ||
+			len(waterway) == 0 &&
+			len(route) == 0) ||
 			len(area) > 0 {
 			continue
 		}
@@ -145,22 +180,7 @@ func (img *Image) DrawLines(ways []*RichWay) {
 		var style *config.FeatureStyle
 
 		if img.Config != nil {
-			for _, tag := range way.Way.Tags {
-				if tag.Key == "website" || tag.Key == "name" {
-					continue
-				}
-
-				tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
-				fmt.Println(tag)
-
-				if tempStyle != nil {
-					fmt.Println("Found style", tag, tempStyle)
-					style = tempStyle
-					break
-				}
-			}
-
-			fmt.Println()
+			style = img.getStyleFromTags(way)
 		}
 
 		if style != nil {
@@ -189,6 +209,24 @@ func (img *Image) DrawLines(ways []*RichWay) {
 
 func (img *Image) Save(filename string, resolution canvas.Resolution) {
 	renderers.Write(filename, img.mapCanvas, resolution)
+}
+
+func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
+	for _, tag := range way.Way.Tags {
+		if tag.Key == "website" || tag.Key == "name" {
+			continue
+		}
+
+		// Query the configuration for any styles that apply to the given attribute.
+		tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
+
+		if tempStyle != nil {
+			style = tempStyle
+			break
+		}
+	}
+
+	return
 }
 
 // func geoJSON(lat, lon float64) {
