@@ -2,16 +2,19 @@ package gis
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers"
+	"github.com/wisepythagoras/gis-utils/config"
 	"github.com/wroge/wgs84"
 )
 
 type Image struct {
 	BBox      *BBox
 	Width     float64
+	Config    *config.Config
 	mapCanvas *canvas.Canvas
 	context   *canvas.Context
 }
@@ -31,8 +34,14 @@ func (img *Image) Init() error {
 	mapCanvas := canvas.New(img.Width, height)
 	context := canvas.NewContext(mapCanvas)
 
+	fillColor := &color.RGBA{222, 236, 240, 255}
+
+	if img.Config != nil {
+		fillColor, _ = img.Config.GetFillColor()
+	}
+
 	// The background color is set here. This should load from a configuration file.
-	context.SetFillColor(color.RGBA{222, 236, 240, 255})
+	context.SetFillColor(fillColor)
 	context.DrawPath(0.0, 0.0, canvas.Rectangle(img.Width, height))
 
 	// Set the coordinate scaling, so that we can just start adding points from our shapefiles and
@@ -50,8 +59,6 @@ func (img *Image) Init() error {
 func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 	convert := wgs84.LonLat().To(wgs84.WebMercator())
 
-	img.context.SetStrokeWidth(2.0)
-
 	for _, polygon := range polygons {
 		path := &canvas.Path{}
 
@@ -68,26 +75,66 @@ func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 
 		path.Close()
 
+		strokeWidth := 2.0
+		strokeColor := &color.RGBA{205, 205, 205, 255}
+		fillColor := &color.RGBA{255, 255, 255, 255}
+
+		if img.Config != nil {
+			strokeWidth, _ = img.Config.GetLandStrokeWidth()
+			strokeColor, _ = img.Config.GetLandStrokeColor()
+			fillColor, _ = img.Config.GetLandFillColor()
+		}
+
 		// The color of the polygon is going to be painted here. This, also, should come from a styles
 		// or configuration file.s
-		img.context.SetStrokeColor(color.RGBA{205, 205, 205, 255})
-		img.context.SetFillColor(color.RGBA{255, 255, 255, 255})
+		img.context.SetStrokeColor(strokeColor)
+		img.context.SetFillColor(fillColor)
+		img.context.SetStrokeWidth(strokeWidth)
 		img.context.DrawPath(0, 0, path)
 	}
 }
 
-func (img *Image) DrawLines(lines []*RichWay) {
-	for _, line := range lines {
-		highway := line.Way.TagMap()["highway"]
-		area := line.Way.TagMap()["area"]
+func (img *Image) DrawPolygons(ways []*RichWay) {
+	for _, way := range ways {
+		var style *config.FeatureStyle
 
-		if len(highway) == 0 || len(area) > 0 {
+		if img.Config != nil {
+			for _, tag := range way.Way.Tags {
+				if tag.Key == "website" || tag.Key == "name" {
+					continue
+				}
+
+				tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
+
+				if tempStyle != nil {
+					fmt.Println(tag, tempStyle)
+					style = tempStyle
+					break
+				}
+			}
+		}
+
+		fmt.Println(style, way)
+	}
+}
+
+func (img *Image) DrawLines(ways []*RichWay) {
+	for _, way := range ways {
+		highway := way.Way.TagMap()["highway"]
+		waterway := way.Way.TagMap()["waterway"]
+		footway := way.Way.TagMap()["footway"]
+		area := way.Way.TagMap()["area"]
+
+		if (len(highway) == 0 &&
+			len(footway) == 0 &&
+			len(waterway) == 0) ||
+			len(area) > 0 {
 			continue
 		}
 
 		path := &canvas.Path{}
 
-		for i, point := range line.Points {
+		for i, point := range way.Points {
 			if i == 0 {
 				path.MoveTo(point.X, point.Y)
 			} else {
@@ -95,17 +142,43 @@ func (img *Image) DrawLines(lines []*RichWay) {
 			}
 		}
 
-		img.context.SetStrokeWidth(4.0)
+		var style *config.FeatureStyle
 
-		if highway == "footway" {
-			img.context.SetStrokeColor(color.RGBA{34, 0, 255, 255})
-		} else if highway == "path" {
-			img.context.SetStrokeColor(color.RGBA{34, 255, 34, 255})
-		} else if highway == "residential" {
-			img.context.SetStrokeColor(color.RGBA{255, 100, 34, 255})
-		} else if highway == "pedestrian" {
-			img.context.SetStrokeColor(color.RGBA{255, 0, 0, 255})
+		if img.Config != nil {
+			for _, tag := range way.Way.Tags {
+				if tag.Key == "website" || tag.Key == "name" {
+					continue
+				}
+
+				tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
+				fmt.Println(tag)
+
+				if tempStyle != nil {
+					fmt.Println("Found style", tag, tempStyle)
+					style = tempStyle
+					break
+				}
+			}
+
+			fmt.Println()
+		}
+
+		if style != nil {
+			strokeWidth := 4.0
+			strokeColor := &color.RGBA{0, 0, 0, 255}
+
+			if style.StrokeWidth > 0 {
+				strokeWidth = style.StrokeWidth
+			}
+
+			if style.StrokeColor != "" {
+				strokeColor, _ = config.ParseColor(style.StrokeColor)
+			}
+
+			img.context.SetStrokeWidth(strokeWidth)
+			img.context.SetStrokeColor(*strokeColor)
 		} else {
+			img.context.SetStrokeWidth(4.0)
 			img.context.SetStrokeColor(color.RGBA{34, 34, 34, 255})
 		}
 
