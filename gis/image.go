@@ -147,6 +147,7 @@ func (img *Image) DrawPolygons(ways []*RichWay) {
 			img.context.SetStrokeColor(*strokeColor)
 			img.context.SetFillColor(*fillColor)
 			img.context.DrawPath(0, 0, path)
+			img.context.ResetStyle()
 		}
 	}
 }
@@ -197,13 +198,18 @@ func (img *Image) DrawLines(ways []*RichWay) {
 
 			img.context.SetStrokeWidth(strokeWidth)
 			img.context.SetStrokeColor(*strokeColor)
-		} else {
+
+			if style.Dashed {
+				img.context.SetDashes(0.0, style.StrokeWidth, style.StrokeWidth)
+			}
+		} else if img.Config.ShowAll() {
 			img.context.SetStrokeWidth(4.0)
-			img.context.SetStrokeColor(color.RGBA{34, 34, 34, 255})
+			img.context.SetStrokeColor(color.RGBA{160, 160, 160, 255})
 		}
 
 		img.context.SetFillColor(color.Transparent)
 		img.context.DrawPath(0, 0, path)
+		img.context.ResetStyle()
 	}
 }
 

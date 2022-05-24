@@ -110,6 +110,14 @@ func (c *Config) GetStyles() *StyleConfig {
 	return c.styleConfig
 }
 
+func (c *Config) ShowAll() bool {
+	if c.styleConfig == nil {
+		return false
+	}
+
+	return c.styleConfig.ShowAll
+}
+
 func (c *Config) GetFillColor() (*color.RGBA, error) {
 	if c.styleConfig == nil {
 		return nil, errors.New(NOT_LOADED_ERR)

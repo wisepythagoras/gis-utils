@@ -10,6 +10,7 @@ type FeatureStyle struct {
 	StrokeWidth float64 `yaml:"stroke_width"`
 	StrokeColor string  `yaml:"stroke_color"`
 	FillColor   string  `yaml:"fill_color"`
+	Dashed      bool
 }
 
 type LandStyle struct {
@@ -21,5 +22,6 @@ type LandStyle struct {
 type StyleConfig struct {
 	FillColor string `yaml:"fill_color"`
 	Land      LandStyle
+	ShowAll   bool `yaml:"show_all"`
 	Styles    []FeatureStyle
 }
