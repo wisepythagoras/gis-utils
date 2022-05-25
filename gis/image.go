@@ -146,6 +146,7 @@ func (img *Image) DrawPolygons(ways []*RichWay) {
 			img.context.SetStrokeWidth(strokeWidth)
 			img.context.SetStrokeColor(*strokeColor)
 			img.context.SetFillColor(*fillColor)
+			img.context.SetZIndex(style.ZIndex)
 			img.context.DrawPath(0, 0, path)
 			img.context.ResetStyle()
 		}
@@ -202,6 +203,8 @@ func (img *Image) DrawLines(ways []*RichWay) {
 			if style.Dashed {
 				img.context.SetDashes(0.0, style.StrokeWidth, style.StrokeWidth)
 			}
+
+			img.context.SetZIndex(style.ZIndex)
 		} else if img.Config.ShowAll() {
 			img.context.SetStrokeWidth(4.0)
 			img.context.SetStrokeColor(color.RGBA{160, 160, 160, 255})

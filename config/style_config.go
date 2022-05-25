@@ -10,6 +10,7 @@ type FeatureStyle struct {
 	StrokeWidth float64 `yaml:"stroke_width"`
 	StrokeColor string  `yaml:"stroke_color"`
 	FillColor   string  `yaml:"fill_color"`
+	ZIndex      int     `yaml:"z_index"`
 	Dashed      bool
 }
 
