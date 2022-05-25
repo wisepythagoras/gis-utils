@@ -42,7 +42,7 @@ func parseBBox(bboxStr string) (*gis.BBox, error) {
 	}
 
 	if bbox.NE.Lon < bbox.SW.Lon || bbox.NE.Lat < bbox.SW.Lat {
-		return nil, errors.New("the ordering of the bounding box coordinates are invalid")
+		return nil, errors.New("the ordering of the bounding box coordinates is invalid")
 	}
 
 	return bbox, nil
