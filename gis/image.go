@@ -1,6 +1,7 @@
 package gis
 
 import (
+	"bytes"
 	"errors"
 	"image/color"
 
@@ -216,8 +217,34 @@ func (img *Image) DrawLines(ways []*RichWay) {
 	}
 }
 
-func (img *Image) Save(filename string, resolution canvas.Resolution) {
-	renderers.Write(filename, img.mapCanvas, resolution)
+func (img *Image) PNG(filename string, resolution canvas.Resolution) error {
+	return renderers.Write(filename, img.mapCanvas, resolution)
+}
+
+func (img *Image) SVG(filename string) error {
+	return img.mapCanvas.WriteFile(filename, renderers.SVG())
+}
+
+func (img *Image) getImageBytes(writer canvas.Writer) ([]byte, error) {
+	var b bytes.Buffer
+
+	if err := writer(&b, img.mapCanvas); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+func (img *Image) SVGBytes() ([]byte, error) {
+	return img.getImageBytes(renderers.SVG())
+}
+
+func (img *Image) PNGBytes() ([]byte, error) {
+	return img.getImageBytes(renderers.PNG())
+}
+
+func (img *Image) TIFFBytes() ([]byte, error) {
+	return img.getImageBytes(renderers.TIFF())
 }
 
 func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
