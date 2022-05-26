@@ -1,3 +1,5 @@
+.PHONY: all clip render
+
 all: clip render
 
 clip:

@@ -30,7 +30,7 @@ func ReadPBF(f io.Reader) ([]*gis.RichWay, *gis.BBox) {
 	scanner.FilterNode = func(n *osm.Node) bool { return true }
 
 	defer scanner.Close()
-	scanner.Object()
+	// scanner.Object()
 
 	for scanner.Scan() {
 		o := scanner.Object()
@@ -132,7 +132,16 @@ func main() {
 
 	defer f.Close()
 
-	wayLines, bbox := ReadPBF(f)
+	pbf := &gis.PBF{}
+	pbf.Init()
+
+	if err := pbf.Load(f); err != nil {
+		panic(err)
+	}
+
+	ways := pbf.Ways()
+	bbox := pbf.BBox()
+
 	shapefile := &gis.Shapefile{Filename: *shapefilePtr}
 
 	err = shapefile.Load()
@@ -160,8 +169,8 @@ func main() {
 	}
 
 	image.DrawShapePolygons(polygons)
-	image.DrawPolygons(wayLines)
-	image.DrawLines(wayLines)
+	image.DrawPolygons(ways)
+	image.DrawLines(ways)
 	image.PNG(*outputPtr, canvas.DPI(600))
 
 	filename := strings.TrimSuffix(*outputPtr, filepath.Ext(*outputPtr))
