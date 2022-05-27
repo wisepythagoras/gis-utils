@@ -84,8 +84,7 @@ func main() {
 	}
 
 	image.DrawShapePolygons(polygons)
-	image.DrawPolygons(ways)
-	image.DrawLines(ways)
+	image.DrawWays(ways)
 	image.PNG(*outputPtr, canvas.DPI(600))
 
 	filename := strings.TrimSuffix(*outputPtr, filepath.Ext(*outputPtr))

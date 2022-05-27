@@ -94,6 +94,60 @@ func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 	}
 }
 
+func (img *Image) DrawWays(ways []*RichWay) {
+	for _, way := range ways {
+		var style *config.FeatureStyle
+
+		if img.Config != nil {
+			style = img.getStyleFromTags(way)
+		}
+
+		if style == nil {
+			continue
+		}
+
+		path := &canvas.Path{}
+
+		img.context.SetFillColor(color.Transparent)
+		img.context.SetStrokeColor(color.Transparent)
+
+		for i, point := range way.Points {
+			if i == 0 {
+				path.MoveTo(point.X, point.Y)
+			} else {
+				path.LineTo(point.X, point.Y)
+			}
+		}
+
+		strokeWidth := 0.0
+		strokeColor := &color.RGBA{0, 0, 0, 0}
+		fillColor := &color.RGBA{0, 0, 0, 0}
+
+		if style.StrokeWidth > 0 {
+			strokeWidth = style.StrokeWidth
+		}
+
+		if style.StrokeColor != "" {
+			strokeColor, _ = config.ParseColor(style.StrokeColor)
+		}
+
+		if style.FillColor != "" {
+			fillColor, _ = config.ParseColor(style.FillColor)
+		}
+
+		if style.Dashed {
+			img.context.SetDashes(0.0, style.StrokeWidth, style.StrokeWidth)
+		}
+
+		img.context.SetStrokeWidth(strokeWidth)
+		img.context.SetStrokeColor(*strokeColor)
+		img.context.SetFillColor(*fillColor)
+		img.context.SetZIndex(style.ZIndex)
+		img.context.DrawPath(0, 0, path)
+		img.context.ResetStyle()
+	}
+}
+
 func (img *Image) DrawPolygons(ways []*RichWay) {
 	for _, way := range ways {
 		highway := way.Way.TagMap()["highway"]
