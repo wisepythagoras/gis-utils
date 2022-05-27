@@ -31,9 +31,7 @@ func (c *Config) ParseFile(filename string) error {
 		return err
 	}
 
-	c.Parse(source)
-
-	return nil
+	return c.Parse(source)
 }
 
 func (c *Config) Parse(source []byte) error {

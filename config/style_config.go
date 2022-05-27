@@ -12,6 +12,7 @@ type FeatureStyle struct {
 	FillColor   string  `yaml:"fill_color"`
 	ZIndex      int     `yaml:"z_index"`
 	Dashed      bool
+	// Area        bool
 }
 
 type LandStyle struct {
