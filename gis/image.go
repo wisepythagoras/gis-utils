@@ -97,7 +97,7 @@ func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 func (img *Image) DrawPolygons(ways []*RichWay) {
 	for _, way := range ways {
 		highway := way.Way.TagMap()["highway"]
-		waterway := way.Way.TagMap()["waterway"]
+		waterway := "" // way.Way.TagMap()["waterway"]
 		footway := way.Way.TagMap()["footway"]
 		route := way.Way.TagMap()["route"]
 		area := way.Way.TagMap()["area"]
@@ -157,7 +157,7 @@ func (img *Image) DrawPolygons(ways []*RichWay) {
 func (img *Image) DrawLines(ways []*RichWay) {
 	for _, way := range ways {
 		highway := way.Way.TagMap()["highway"]
-		waterway := way.Way.TagMap()["waterway"]
+		waterway := "" // way.Way.TagMap()["waterway"]
 		footway := way.Way.TagMap()["footway"]
 		route := way.Way.TagMap()["route"]
 		area := way.Way.TagMap()["area"]

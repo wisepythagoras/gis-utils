@@ -17,6 +17,8 @@ func main() {
 	outputPtr := flag.String("output", "out.png", "The output path")
 	pbfPtr := flag.String("pbf", "", "The path to the OSM Protobuf file")
 	stylesPtr := flag.String("styles", "", "The path to the style configuration file")
+	widthPtr := flag.Float64("width", 320, "The width of the output image")
+	verbosePtr := flag.Bool("verbose", false, "Whether to print debug information or not")
 	flag.Parse()
 
 	if len(*shapefilePtr) == 0 {
@@ -45,7 +47,7 @@ func main() {
 
 	defer f.Close()
 
-	pbf := &gis.PBF{}
+	pbf := &gis.PBF{Verbose: *verbosePtr}
 	pbf.Init()
 
 	if err := pbf.Load(f); err != nil {
@@ -71,7 +73,7 @@ func main() {
 
 	image := &gis.Image{
 		BBox:   bbox,
-		Width:  320,
+		Width:  *widthPtr,
 		Config: conf,
 	}
 	err = image.Init()

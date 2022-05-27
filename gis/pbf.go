@@ -2,6 +2,8 @@ package gis
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 
@@ -14,6 +16,7 @@ type PBF struct {
 	nodeMap map[osm.NodeID]*osm.Node
 	ways    []*RichWay
 	bbox    *BBox
+	Verbose bool
 }
 
 func (pbf *PBF) Init() {
@@ -56,6 +59,11 @@ func (pbf *PBF) Load(f io.Reader) error {
 			way := o.(*osm.Way)
 			nodeIDs := make([]osm.NodeID, 0)
 			points := make([]Point, 0)
+
+			if pbf.Verbose {
+				j, _ := json.Marshal(way)
+				fmt.Println(string(j))
+			}
 
 			for _, wn := range way.Nodes {
 				nodeIDs = append(nodeIDs, wn.ID)
