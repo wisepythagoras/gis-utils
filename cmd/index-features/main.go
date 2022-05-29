@@ -14,6 +14,64 @@ import (
 	"github.com/wroge/wgs84"
 )
 
+func indexShapefile(tx *buntdb.Tx, shapefile *gis.Shapefile) error {
+	return shapefile.Iter(func(i int, p *shp.Polygon) error {
+		points := ""
+
+		for j, point := range p.Points {
+			lon, lat, _ := wgs84.WebMercator().To(wgs84.LonLat())(point.X, point.Y, 0)
+			separator := ","
+
+			if j == 0 {
+				separator = ""
+			}
+
+			points = fmt.Sprintf("%s%s[%f %f]", points, separator, lon, lat)
+			fmt.Println(i, j)
+		}
+
+		key := fmt.Sprintf("land:%d:feature", i)
+
+		_, _, err := tx.Set(key, points, nil)
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Saved feature %d with %d points.\n", i, len(p.Points))
+
+		return nil
+	})
+}
+
+func indexPbf(tx *buntdb.Tx, pbf *gis.PBF) error {
+	for _, way := range pbf.Ways() {
+		points := ""
+
+		for j, point := range way.Points {
+			separator := ","
+
+			if j == 0 {
+				separator = ""
+			}
+
+			points = fmt.Sprintf("%s%s[%f %f]", points, separator, point.Lon, point.Lat)
+		}
+
+		key := fmt.Sprintf("land:%d:feature", way.Way.ID)
+
+		_, _, err := tx.Set(key, points, nil)
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Saved feature %d with %d points.\n", way.Way.ID, len(way.Points))
+	}
+
+	return nil
+}
+
 func main() {
 	shapefilePtr := flag.String("shapefile", "", "The path to the land shapefile")
 	pbfPtr := flag.String("pbf", "", "The path to the land PBF")
@@ -75,60 +133,9 @@ func main() {
 		fmt.Println("Saving indecies.")
 
 		if shapefile != nil {
-			err = shapefile.Iter(func(i int, p *shp.Polygon) error {
-				points := ""
-
-				fmt.Println(" ->", i, p.NumPoints)
-
-				for j, point := range p.Points {
-					lon, lat, _ := wgs84.WebMercator().To(wgs84.LonLat())(point.X, point.Y, 0)
-					separator := ","
-
-					if j == 0 {
-						separator = ""
-					}
-
-					points = fmt.Sprintf("%s%s[%f %f]", points, separator, lon, lat)
-					fmt.Println(i, j)
-				}
-
-				key := fmt.Sprintf("land:%d:feature", i)
-				fmt.Println(key)
-
-				_, _, err := tx.Set(key, points, nil)
-
-				if err != nil {
-					return err
-				}
-
-				fmt.Printf("Saved feature %d with %d points.\n", i, len(p.Points))
-
-				return nil
-			})
+			err = indexShapefile(tx, shapefile)
 		} else if pbf != nil {
-			for _, way := range pbf.Ways() {
-				points := ""
-
-				for j, point := range way.Points {
-					separator := ","
-
-					if j == 0 {
-						separator = ""
-					}
-
-					points = fmt.Sprintf("%s%s[%f %f]", points, separator, point.Lon, point.Lat)
-				}
-
-				key := fmt.Sprintf("land:%d:feature", way.Way.ID)
-
-				_, _, err := tx.Set(key, points, nil)
-
-				if err != nil {
-					return err
-				}
-
-				fmt.Printf("Saved feature %d with %d points.\n", way.Way.ID, len(way.Points))
-			}
+			err = indexPbf(tx, pbf)
 		}
 
 		fmt.Println("Interrated over all features.")
