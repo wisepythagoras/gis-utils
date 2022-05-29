@@ -92,6 +92,24 @@ func (shapefile *Shapefile) Clip(bbox *BBox) ([]*ShapePolygon, error) {
 	return shapefile.polygons, nil
 }
 
+func (shapefile *Shapefile) Iter(callback func(int, *shp.Polygon) error) error {
+	if shapefile.reader == nil {
+		return errors.New("no shapefile was loaded")
+	}
+
+	for shapefile.reader.Next() {
+		i, p := shapefile.reader.Shape()
+		var intermediate interface{} = p
+		polygon := intermediate.(*shp.Polygon)
+
+		if err := callback(i, polygon); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetPolygons just retruns the list of polygons that were captured from a shapefile.
 func (shapefile *Shapefile) GetPolygons() []*ShapePolygon {
 	return shapefile.polygons
