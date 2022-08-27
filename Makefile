@@ -1,6 +1,6 @@
-.PHONY: all clip render
+.PHONY: all clip render tiles
 
-all: clip render
+all: clip render tiles
 
 clip:
 	$(shell cd cmd/clip-shapefile; go build .)
@@ -9,3 +9,7 @@ clip:
 render:
 	$(shell cd cmd/render; go build .)
 	mv cmd/render/render .
+
+tiles:
+	$(shell cd cmd/tiles; go build .)
+	mv cmd/tiles/tiles .

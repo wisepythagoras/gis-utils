@@ -4,9 +4,10 @@ go 1.18
 
 require (
 	github.com/jonas-p/go-shp v0.1.1
-	github.com/paulmach/osm v0.3.0
+	github.com/paulmach/osm v0.7.0
 	github.com/samber/lo v1.21.0
 	github.com/tdewolff/canvas v0.0.0-20220427164545-165dd6a5f5ac
+	github.com/tidwall/buntdb v1.2.9
 	github.com/wroge/wgs84 v1.1.2
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -28,13 +29,13 @@ require (
 	github.com/tdewolff/minify/v2 v2.10.0 // indirect
 	github.com/tdewolff/parse/v2 v2.5.27 // indirect
 	github.com/tidwall/btree v1.1.0 // indirect
-	github.com/tidwall/buntdb v1.2.9 // indirect
 	github.com/tidwall/gjson v1.12.1 // indirect
 	github.com/tidwall/grect v0.1.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/rtred v0.1.2 // indirect
 	github.com/tidwall/tinyqueue v0.1.1 // indirect
+	github.com/tomchavakis/geojson v0.0.3 // indirect
 	github.com/wcharczuk/go-chart/v2 v2.1.0 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
@@ -42,4 +43,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
 	gonum.org/v1/plot v0.10.0 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
