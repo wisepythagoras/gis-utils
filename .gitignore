@@ -30,3 +30,11 @@ gis-utils
 /clip-shapefile
 /.vscode
 *.db
+*.svg
+*.png
+*.pbf
+debug
+notes
+render
+*.tiff
+style*yaml

@@ -35,4 +35,9 @@ func main() {
 	geoJSON, err := tileBBox.ToGeoJSONStr()
 
 	fmt.Println(string(geoJSON), err)
+
+	tileBBox = gis.GetTileBBox(uint32(x1), uint32(y1), uint32(z1))
+	geoJSON, err = tileBBox.ToGeoJSONStr()
+
+	fmt.Println(string(geoJSON), err)
 }
