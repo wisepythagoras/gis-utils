@@ -3,7 +3,6 @@ package gis
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"image/color"
 
 	"github.com/tdewolff/canvas"
@@ -307,9 +306,6 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 
 	for _, tag := range way.Way.Tags {
 		tagMap[tag.Key] = tag.Value
-		if way.Way.ID == 865687233 {
-			fmt.Println(tag.Key, tag.Value)
-		}
 	}
 
 	for _, tag := range way.Way.Tags {
