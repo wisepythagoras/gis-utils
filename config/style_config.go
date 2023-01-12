@@ -7,12 +7,12 @@ type FeatureQuery struct {
 
 type FeatureStyle struct {
 	Queries     []FeatureQuery
-	StrokeWidth float64 `yaml:"stroke_width"`
-	StrokeColor string  `yaml:"stroke_color"`
-	FillColor   string  `yaml:"fill_color"`
-	ZIndex      int     `yaml:"z_index"`
+	Exclude     []FeatureQuery `yaml:"exclude"`
+	StrokeWidth float64        `yaml:"stroke_width"`
+	StrokeColor string         `yaml:"stroke_color"`
+	FillColor   string         `yaml:"fill_color"`
+	ZIndex      int            `yaml:"z_index"`
 	Dashed      bool
-	// Area        bool
 }
 
 type LandStyle struct {

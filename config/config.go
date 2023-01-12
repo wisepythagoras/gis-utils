@@ -13,11 +13,13 @@ import (
 const NOT_LOADED_ERR = "no loaded styles were found"
 const NO_STYLE_ERR = "no corresponding style found"
 
+type FeatureStyleMap map[string]map[string]*FeatureStyle
+
 type Config struct {
 	UseMap      bool
 	Verbose     bool
 	styleConfig *StyleConfig
-	styleMap    map[string]map[string]*FeatureStyle
+	styleMap    FeatureStyleMap
 }
 
 func (c *Config) ParseFile(filename string) error {
@@ -44,28 +46,32 @@ func (c *Config) Parse(source []byte) error {
 	}
 
 	if c.UseMap {
-		styleMap := make(map[string]map[string]*FeatureStyle)
-
-		for i, style := range styleConfig.Styles {
-			for _, query := range style.Queries {
-				if styleMap[query.Attribute] == nil {
-					styleMap[query.Attribute] = make(map[string]*FeatureStyle)
-				}
-
-				styleMap[query.Attribute][query.Value] = &styleConfig.Styles[i]
-
-				if c.Verbose {
-					fmt.Println(query.Attribute, query.Value, style)
-				}
-			}
-		}
-
-		c.styleMap = styleMap
+		c.styleMap = c.parseStyles(styleConfig.Styles)
 	}
 
 	c.styleConfig = &styleConfig
 
 	return nil
+}
+
+func (c *Config) parseStyles(styles []FeatureStyle) FeatureStyleMap {
+	styleMap := make(FeatureStyleMap)
+
+	for i, style := range styles {
+		for _, query := range style.Queries {
+			if styleMap[query.Attribute] == nil {
+				styleMap[query.Attribute] = make(map[string]*FeatureStyle)
+			}
+
+			styleMap[query.Attribute][query.Value] = &styles[i]
+
+			if c.Verbose {
+				fmt.Println(query.Attribute, query.Value, style)
+			}
+		}
+	}
+
+	return styleMap
 }
 
 func (c *Config) Query(attribute, value string) (*FeatureStyle, error) {

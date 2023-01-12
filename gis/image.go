@@ -3,6 +3,7 @@ package gis
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"image/color"
 
 	"github.com/tdewolff/canvas"
@@ -302,6 +303,15 @@ func (img *Image) TIFFBytes() ([]byte, error) {
 }
 
 func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
+	tagMap := make(map[string]string)
+
+	for _, tag := range way.Way.Tags {
+		tagMap[tag.Key] = tag.Value
+		if way.Way.ID == 865687233 {
+			fmt.Println(tag.Key, tag.Value)
+		}
+	}
+
 	for _, tag := range way.Way.Tags {
 		if tag.Key == "website" || tag.Key == "name" {
 			continue
@@ -311,6 +321,19 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 		tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
 
 		if tempStyle != nil {
+			excludeWay := false
+
+			for _, exclusion := range tempStyle.Exclude {
+				if v, ok := tagMap[exclusion.Attribute]; ok && v == exclusion.Value {
+					excludeWay = true
+					break
+				}
+			}
+
+			if excludeWay {
+				break
+			}
+
 			style = tempStyle
 			break
 		}
