@@ -55,6 +55,8 @@ func main() {
 	}
 
 	ways := pbf.Ways()
+	relations := pbf.Relations()
+	// TODO: Add a bbox override for custom bbox from input.
 	bbox := pbf.BBox()
 
 	shapefile := &gis.Shapefile{Filename: *shapefilePtr}
@@ -85,6 +87,7 @@ func main() {
 
 	image.DrawShapePolygons(polygons)
 	image.DrawWays(ways)
+	image.DrawWays(relations)
 	image.PNG(*outputPtr, canvas.DPI(600))
 
 	filename := strings.TrimSuffix(*outputPtr, filepath.Ext(*outputPtr))

@@ -9,19 +9,22 @@ import (
 
 	"github.com/paulmach/osm"
 	"github.com/paulmach/osm/osmpbf"
+	"github.com/samber/lo"
 	"github.com/wroge/wgs84"
 )
 
 type PBF struct {
-	nodeMap map[osm.NodeID]*osm.Node
-	ways    []*RichWay
-	bbox    *BBox
-	Verbose bool
+	nodeMap   map[osm.NodeID]*osm.Node
+	ways      []*RichWay
+	relations []*RichWay
+	bbox      *BBox
+	Verbose   bool
 }
 
 func (pbf *PBF) Init() {
 	pbf.nodeMap = make(map[osm.NodeID]*osm.Node)
 	pbf.ways = make([]*RichWay, 0)
+	pbf.relations = make([]*RichWay, 0)
 }
 
 func (pbf *PBF) Load(f io.Reader) error {
@@ -44,6 +47,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 			node := o.(*osm.Node)
 			pbf.nodeMap[node.ID] = node
 
+			// Compute the bounding box from the nodes in the PBF file.
 			if node.Lat < minLat {
 				minLat = node.Lat
 			} else if node.Lat > maxLat {
@@ -67,19 +71,9 @@ func (pbf *PBF) Load(f io.Reader) error {
 
 			for _, wn := range way.Nodes {
 				nodeIDs = append(nodeIDs, wn.ID)
-				node := pbf.nodeMap[wn.ID]
 
-				if node != nil {
-					x, y, _ := wgs84.LonLat().To(wgs84.WebMercator())(node.Lon, node.Lat, 0)
-
-					point := Point{
-						Lat: node.Lat,
-						Lon: node.Lon,
-						X:   x,
-						Y:   y,
-					}
-
-					points = append(points, point)
+				if point := pbf.pointFromNodeID(wn.ID); point != nil {
+					points = append(points, *point)
 				}
 			}
 
@@ -91,11 +85,54 @@ func (pbf *PBF) Load(f io.Reader) error {
 
 			pbf.ways = append(pbf.ways, newWay)
 		} else if t == "relation" {
-			// TODO: Data is "hidden" in relations.
+			// TODO: I only support polygon relations. Should other types be supported?
 			relation := o.(*osm.Relation)
-			_ = relation
-			// relation.Polygon()
-			// fmt.Println(relation.Members, relation.TagMap(), relation.Members.ElementIDs()[0].WayID())
+			nodeIDs := make([]osm.NodeID, 0)
+			points := make([]Point, 0)
+
+			if relation.Polygon() {
+				if pbf.Verbose {
+					j, _ := json.Marshal(relation)
+					fmt.Println(string(j))
+				}
+
+				nodes := make([]osm.WayNode, 0)
+
+				for _, member := range relation.Members {
+					if member.Type == "node" {
+						nodeID := member.ElementID().NodeID()
+						nodeIDs = append(nodeIDs, nodeID)
+						nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
+					} else if member.Type == "way" {
+						way, found := lo.Find(pbf.ways, func(way *RichWay) bool {
+							return way.Way.ID == member.ElementID().WayID()
+						})
+
+						if found {
+							nodeIDs = append(nodeIDs, way.NodeIDs...)
+
+							for _, nodeID := range way.NodeIDs {
+								nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
+							}
+						}
+					}
+				}
+
+				way := &osm.Way{
+					ID:      osm.WayID(relation.ID),
+					Visible: true,
+					Nodes:   nodes,
+					Tags:    relation.Tags,
+				}
+
+				newWay := &RichWay{
+					Way:     way,
+					NodeIDs: nodeIDs,
+					Points:  points,
+				}
+
+				pbf.relations = append(pbf.relations, newWay)
+			}
 		}
 	}
 
@@ -113,10 +150,53 @@ func (pbf *PBF) Load(f io.Reader) error {
 	return nil
 }
 
+func (pbf *PBF) wayNodeFromNodeID(nodeID osm.NodeID) *osm.WayNode {
+	if node, ok := pbf.nodeMap[nodeID]; ok {
+		return &osm.WayNode{
+			ID:  nodeID,
+			Lat: node.Lat,
+			Lon: node.Lon,
+		}
+	}
+
+	return nil
+}
+
+func (pbf *PBF) pointFromNodeID(nodeID osm.NodeID) *Point {
+	if node, ok := pbf.nodeMap[nodeID]; ok {
+		x, y, _ := wgs84.LonLat().To(wgs84.WebMercator())(node.Lon, node.Lat, 0)
+
+		return &Point{
+			Lat: node.Lat,
+			Lon: node.Lon,
+			X:   x,
+			Y:   y,
+		}
+	}
+
+	return nil
+}
+
+func (pbf *PBF) updateNodesAndPoints(nodeID osm.NodeID, nodes []osm.WayNode, points []Point) ([]osm.WayNode, []Point) {
+	if wayNode := pbf.wayNodeFromNodeID(nodeID); wayNode != nil {
+		nodes = append(nodes, *wayNode)
+
+		if point := pbf.pointFromNodeID(nodeID); point != nil {
+			points = append(points, *point)
+		}
+	}
+
+	return nodes, points
+}
+
 func (pbf *PBF) BBox() *BBox {
 	return pbf.bbox
 }
 
 func (pbf *PBF) Ways() []*RichWay {
 	return pbf.ways
+}
+
+func (pbf *PBF) Relations() []*RichWay {
+	return pbf.relations
 }

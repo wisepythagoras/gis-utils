@@ -56,6 +56,7 @@ func (img *Image) Init() error {
 	return nil
 }
 
+// DrawShapePolygons draws polygons found in the land shapefile.
 func (img *Image) DrawShapePolygons(polygons []*ShapePolygon) {
 	convert := wgs84.LonLat().To(wgs84.WebMercator())
 
