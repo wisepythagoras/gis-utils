@@ -308,6 +308,20 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 		tagMap[tag.Key] = tag.Value
 	}
 
+	// First we look through the list of way ids (if there are any) in the styles. If a style is
+	// found, then we can check if it should be excluded.
+	style, _ = img.Config.QueryId(int64(way.Way.ID))
+
+	if style != nil && style.ShouldExclude(tagMap) {
+		style = nil
+		return
+	} else if style != nil {
+		// If it shouldn't be excluded, then return it.
+		return
+	}
+
+	// Otherwise, if no style was found from the way id, then we should loop through all the tags
+	// (attributes) and look for any style based on that.
 	for _, tag := range way.Way.Tags {
 		if tag.Key == "website" || tag.Key == "name" {
 			continue
@@ -317,16 +331,7 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 		tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
 
 		if tempStyle != nil {
-			excludeWay := false
-
-			for _, exclusion := range tempStyle.Exclude {
-				if v, ok := tagMap[exclusion.Attribute]; ok && v == exclusion.Value {
-					excludeWay = true
-					break
-				}
-			}
-
-			if excludeWay {
+			if tempStyle.ShouldExclude(tagMap) {
 				break
 			}
 

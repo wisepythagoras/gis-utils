@@ -90,6 +90,12 @@ func (pbf *PBF) Load(f io.Reader) error {
 			}
 
 			pbf.ways = append(pbf.ways, newWay)
+		} else if t == "relation" {
+			// TODO: Data is "hidden" in relations.
+			relation := o.(*osm.Relation)
+			_ = relation
+			// relation.Polygon()
+			// fmt.Println(relation.Members, relation.TagMap(), relation.Members.ElementIDs()[0].WayID())
 		}
 	}
 

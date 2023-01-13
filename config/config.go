@@ -94,6 +94,22 @@ func (c *Config) Query(attribute, value string) (*FeatureStyle, error) {
 	return &style, nil
 }
 
+func (c *Config) QueryId(wayId int64) (*FeatureStyle, error) {
+	if c.styleConfig == nil {
+		return nil, errors.New(NOT_LOADED_ERR)
+	}
+
+	style, ok := lo.Find(c.styleConfig.Styles, func(fs FeatureStyle) bool {
+		return lo.Some(fs.WayIdQueries, []int64{wayId})
+	})
+
+	if !ok {
+		return nil, errors.New(NO_STYLE_ERR)
+	}
+
+	return &style, nil
+}
+
 func (c *Config) queryMap(attribute, value string) (*FeatureStyle, error) {
 	if c.styleConfig == nil {
 		return nil, errors.New(NOT_LOADED_ERR)
