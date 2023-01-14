@@ -313,7 +313,7 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 	// found, then we can check if it should be excluded.
 	style, _ = img.Config.QueryId(int64(way.Way.ID))
 
-	if style != nil && style.ShouldExclude(tagMap) {
+	if style != nil && style.ShouldExclude(tagMap, way.Way.ID) {
 		style = nil
 		return
 	} else if style != nil {
@@ -332,7 +332,7 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 		tempStyle, _ := img.Config.Query(tag.Key, tag.Value)
 
 		if tempStyle != nil {
-			if tempStyle.ShouldExclude(tagMap) {
+			if tempStyle.ShouldExclude(tagMap, way.Way.ID) {
 				break
 			}
 
