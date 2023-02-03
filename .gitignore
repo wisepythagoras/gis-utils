@@ -38,3 +38,7 @@ notes
 render
 *.tiff
 style*yaml
+
+cmd/clip-shapefile/clip-shapefile
+cmd/tiles/tiles
+cmd/query/query

@@ -7,5 +7,5 @@ import (
 type RichWay struct {
 	Way     *osm.Way
 	NodeIDs []osm.NodeID
-	Points  []Point
+	Points  [][]Point
 }

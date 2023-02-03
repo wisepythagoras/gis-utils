@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/paulmach/orb/maptile"
 	"github.com/wisepythagoras/gis-utils/gis"
 )
 
@@ -27,9 +28,13 @@ func main() {
 	z1, x1, y1 := getTileURL(lat, lon, 13)
 	z2, x2, y2 := getTileURL(lat, lon, 18)
 
+	tile := maptile.At([2]float64{lon, lat}, 10)
+
 	fmt.Println(z0, x0, y0)
 	fmt.Println(z1, x1, y1)
 	fmt.Println(z2, x2, y2)
+
+	fmt.Println(tile.Z, tile.X, tile.Y)
 
 	tileBBox := gis.GetTileBBox(74774, 50967, 17)
 	geoJSON, err := tileBBox.ToGeoJSONStr()

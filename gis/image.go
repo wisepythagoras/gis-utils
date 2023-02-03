@@ -112,11 +112,13 @@ func (img *Image) DrawWays(ways []*RichWay) {
 		img.context.SetFillColor(color.Transparent)
 		img.context.SetStrokeColor(color.Transparent)
 
-		for i, point := range way.Points {
-			if i == 0 {
-				path.MoveTo(point.X, point.Y)
-			} else {
-				path.LineTo(point.X, point.Y)
+		for _, ring := range way.Points {
+			for i, point := range ring {
+				if i == 0 {
+					path.MoveTo(point.X, point.Y)
+				} else {
+					path.LineTo(point.X, point.Y)
+				}
 			}
 		}
 
@@ -144,129 +146,6 @@ func (img *Image) DrawWays(ways []*RichWay) {
 		img.context.SetStrokeColor(*strokeColor)
 		img.context.SetFillColor(*fillColor)
 		img.context.SetZIndex(style.ZIndex)
-		img.context.DrawPath(0, 0, path)
-		img.context.ResetStyle()
-	}
-}
-
-func (img *Image) DrawPolygons(ways []*RichWay) {
-	for _, way := range ways {
-		highway := way.Way.TagMap()["highway"]
-		waterway := "" // way.Way.TagMap()["waterway"]
-		footway := way.Way.TagMap()["footway"]
-		route := way.Way.TagMap()["route"]
-		area := way.Way.TagMap()["area"]
-
-		// Do not style lines here.
-		if len(highway) > 0 ||
-			len(route) > 0 ||
-			len(waterway) > 0 ||
-			(len(footway) > 0 &&
-				len(area) == 0) {
-			continue
-		}
-
-		var style *config.FeatureStyle
-
-		if img.Config != nil {
-			style = img.getStyleFromTags(way)
-		}
-
-		if style != nil {
-			path := &canvas.Path{}
-
-			for i, point := range way.Points {
-				if i == 0 {
-					path.MoveTo(point.X, point.Y)
-				} else {
-					path.LineTo(point.X, point.Y)
-				}
-			}
-
-			strokeWidth := 0.0
-			strokeColor := &color.RGBA{0, 0, 0, 255}
-			fillColor := &color.RGBA{0, 0, 0, 255}
-
-			if style.StrokeWidth > 0 {
-				strokeWidth = style.StrokeWidth
-			}
-
-			if style.StrokeColor != "" {
-				strokeColor, _ = config.ParseColor(style.StrokeColor)
-			}
-
-			if style.FillColor != "" {
-				fillColor, _ = config.ParseColor(style.FillColor)
-			}
-
-			img.context.SetStrokeWidth(strokeWidth)
-			img.context.SetStrokeColor(*strokeColor)
-			img.context.SetFillColor(*fillColor)
-			img.context.SetZIndex(style.ZIndex)
-			img.context.DrawPath(0, 0, path)
-			img.context.ResetStyle()
-		}
-	}
-}
-
-func (img *Image) DrawLines(ways []*RichWay) {
-	for _, way := range ways {
-		highway := way.Way.TagMap()["highway"]
-		waterway := "" // way.Way.TagMap()["waterway"]
-		footway := way.Way.TagMap()["footway"]
-		route := way.Way.TagMap()["route"]
-		area := way.Way.TagMap()["area"]
-
-		if (len(highway) == 0 &&
-			len(footway) == 0 &&
-			len(waterway) == 0 &&
-			len(route) == 0) ||
-			len(area) > 0 {
-			continue
-		}
-
-		path := &canvas.Path{}
-
-		for i, point := range way.Points {
-			if i == 0 {
-				path.MoveTo(point.X, point.Y)
-			} else {
-				path.LineTo(point.X, point.Y)
-			}
-		}
-
-		var style *config.FeatureStyle
-
-		if img.Config != nil {
-			style = img.getStyleFromTags(way)
-		}
-
-		if style != nil {
-			strokeWidth := 4.0
-			strokeColor := &color.RGBA{0, 0, 0, 255}
-
-			if style.StrokeWidth > 0 {
-				strokeWidth = style.StrokeWidth
-			}
-
-			if style.StrokeColor != "" {
-				strokeColor, _ = config.ParseColor(style.StrokeColor)
-			}
-
-			img.context.SetStrokeWidth(strokeWidth)
-			img.context.SetStrokeColor(*strokeColor)
-
-			if style.Dashed {
-				img.context.SetDashes(0.0, style.StrokeWidth, style.StrokeWidth)
-			}
-
-			img.context.SetZIndex(style.ZIndex)
-		} else if img.Config.ShowAll() {
-			img.context.SetStrokeWidth(4.0)
-			img.context.SetStrokeColor(color.RGBA{160, 160, 160, 255})
-		}
-
-		img.context.SetFillColor(color.Transparent)
 		img.context.DrawPath(0, 0, path)
 		img.context.ResetStyle()
 	}

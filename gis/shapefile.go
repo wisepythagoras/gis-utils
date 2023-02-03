@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/jonas-p/go-shp"
-	"github.com/wroge/wgs84"
 )
 
 type Shapefile struct {
@@ -31,7 +30,7 @@ func (shapefile *Shapefile) Clip(bbox *BBox) ([]*ShapePolygon, error) {
 	}
 
 	shapefile.polygons = make([]*ShapePolygon, 0)
-	convert := wgs84.LonLat().To(wgs84.WebMercator())
+	// convert := wgs84.LonLat().To(wgs84.WebMercator())
 
 	for shapefile.reader.Next() {
 		_, p := shapefile.reader.Shape()
@@ -43,9 +42,22 @@ func (shapefile *Shapefile) Clip(bbox *BBox) ([]*ShapePolygon, error) {
 		insideBBox := false
 
 		for i, point := range polygon.Points {
-			lon, lat, _ := wgs84.WebMercator().To(wgs84.LonLat())(point.X, point.Y, 0)
-			xmin, ymin, _ := convert(bbox.SW.Lon, bbox.SW.Lat, 0)
-			xmax, ymax, _ := convert(bbox.NE.Lon, bbox.NE.Lat, 0)
+			var lat, lon, xmin, ymin, xmax, ymax float64
+			// var lon float64
+
+			lat = point.Y
+			lon = point.X
+
+			xmin = bbox.SW.Lon
+			ymin = bbox.SW.Lat
+			xmax = bbox.NE.Lon
+			ymax = bbox.NE.Lat
+
+			// lon, lat, _ = wgs84.WebMercator().To(wgs84.LonLat())(point.X, point.Y, 0)
+			// fmt.Println(point.X, point.Y, lat, lon)
+
+			// xmin, ymin, _ := convert(bbox.SW.Lon, bbox.SW.Lat, 0)
+			// xmax, ymax, _ := convert(bbox.NE.Lon, bbox.NE.Lat, 0)
 
 			if lon >= bbox.SW.Lon && lon <= bbox.NE.Lon && lat <= bbox.NE.Lat && lat >= bbox.SW.Lat {
 				insideBBox = true

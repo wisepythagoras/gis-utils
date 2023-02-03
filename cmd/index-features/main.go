@@ -48,14 +48,16 @@ func indexPbf(tx *buntdb.Tx, pbf *gis.PBF) error {
 	for _, way := range pbf.Ways() {
 		points := ""
 
-		for j, point := range way.Points {
-			separator := ","
+		for _, ring := range way.Points {
+			for j, point := range ring {
+				separator := ","
 
-			if j == 0 {
-				separator = ""
+				if j == 0 {
+					separator = ""
+				}
+
+				points = fmt.Sprintf("%s%s[%f %f]", points, separator, point.Lon, point.Lat)
 			}
-
-			points = fmt.Sprintf("%s%s[%f %f]", points, separator, point.Lon, point.Lat)
 		}
 
 		key := fmt.Sprintf("land:%d:feature", way.Way.ID)
