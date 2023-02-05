@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -61,16 +60,14 @@ func main() {
 	}
 
 	bbox, err := parseBBox(*bboxPtr)
-	a, _ := json.Marshal(bbox)
-	b, _ := bbox.ToGeoJSONStr()
-	fmt.Println(string(a))
-	fmt.Println(string(b))
 
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 
+	geojson, _ := bbox.ToGeoJSONStr()
+	fmt.Println(string(geojson))
 	outputPath := *outputPtr
 
 	// Construct a default filename for the output, in case one was not passed.
