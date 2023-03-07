@@ -88,6 +88,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 			// TODO: I only support polygon relations. Should other types be supported?
 			relation := o.(*osm.Relation)
 			nodeIDs := make([]osm.NodeID, 0)
+
 			if relation.Polygon() {
 				if pbf.Verbose {
 					j, _ := json.Marshal(relation)
@@ -96,6 +97,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 
 				nodes := make([]osm.WayNode, 0)
 				rings := make([][]Point, 0)
+				outerRings := make([][]Point, 0)
 				outer := make([]Point, 0)
 
 				for _, member := range relation.Members {
@@ -111,6 +113,11 @@ func (pbf *PBF) Load(f io.Reader) error {
 						})
 
 						if found {
+							if pbf.Verbose {
+								j, _ := json.Marshal(way)
+								fmt.Println("  ->", string(j))
+							}
+
 							nodeIDs = append(nodeIDs, way.NodeIDs...)
 
 							for _, nodeID := range way.NodeIDs {
@@ -126,6 +133,24 @@ func (pbf *PBF) Load(f io.Reader) error {
 					}
 				}
 
+				if len(outer) > 0 {
+					temp := make([]Point, 0)
+
+					for _, p := range outer {
+						temp = append(temp, p)
+
+						if len(temp) > 2 {
+							first := temp[0]
+							last := temp[len(temp)-1]
+
+							if first.Lat == last.Lat && first.Lon == last.Lon {
+								outerRings = append(outerRings, temp)
+								temp = make([]Point, 0)
+							}
+						}
+					}
+				}
+
 				way := &osm.Way{
 					ID:      osm.WayID(relation.ID),
 					Visible: true,
@@ -136,7 +161,12 @@ func (pbf *PBF) Load(f io.Reader) error {
 				newWay := &RichWay{
 					Way:     way,
 					NodeIDs: nodeIDs,
-					Points:  append([][]Point{outer}, rings...),
+					Points:  append(outerRings, rings...),
+				}
+
+				if pbf.Verbose {
+					j, _ := json.Marshal(newWay)
+					fmt.Println(" ->", string(j))
 				}
 
 				pbf.relations = append(pbf.relations, newWay)
