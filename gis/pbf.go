@@ -89,7 +89,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 			relation := o.(*osm.Relation)
 			nodeIDs := make([]osm.NodeID, 0)
 
-			if relation.Polygon() {
+			if relation.Polygon() && relation.Visible {
 				if pbf.Verbose {
 					j, _ := json.Marshal(relation)
 					fmt.Println(string(j))
@@ -100,29 +100,28 @@ func (pbf *PBF) Load(f io.Reader) error {
 				outerRings := make([][]Point, 0)
 				outer := make([]Point, 0)
 
-				for _, member := range relation.Members {
+				sortedMembers, wayMap := pbf.sortRelationMembers(relation.Members)
+
+				if pbf.Verbose || relation.ID == 166150 {
+					j, _ := json.Marshal(sortedMembers)
+					fmt.Println(" ->", len(sortedMembers), len(relation.Members), string(j))
+					j, _ = json.Marshal(relation.Members)
+					fmt.Println("   ", string(j))
+				}
+
+				for _, member := range sortedMembers {
 					points := make([]Point, 0)
 
-					if member.Type == "node" {
-						nodeID := member.ElementID().NodeID()
-						nodeIDs = append(nodeIDs, nodeID)
-						nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
-					} else if member.Type == "way" {
-						way, found := lo.Find(pbf.ways, func(way *RichWay) bool {
-							return way.Way.ID == member.ElementID().WayID()
-						})
+					if way, found := wayMap[member.ElementID().WayID()]; found {
+						if pbf.Verbose {
+							j, _ := json.Marshal(way)
+							fmt.Println("  ->", string(j))
+						}
 
-						if found {
-							if pbf.Verbose {
-								j, _ := json.Marshal(way)
-								fmt.Println("  ->", string(j))
-							}
+						nodeIDs = append(nodeIDs, way.NodeIDs...)
 
-							nodeIDs = append(nodeIDs, way.NodeIDs...)
-
-							for _, nodeID := range way.NodeIDs {
-								nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
-							}
+						for _, nodeID := range way.NodeIDs {
+							nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
 						}
 					}
 
@@ -132,6 +131,44 @@ func (pbf *PBF) Load(f io.Reader) error {
 						rings = append(rings, points)
 					}
 				}
+
+				// Leaving this here for reference. It's the old and dumb way of placing relations as polygons.
+				// for _, member := range relation.Members {
+				// 	points := make([]Point, 0)
+
+				// 	if member.Type == "node" {
+				// 		nodeID := member.ElementID().NodeID()
+				// 		nodeIDs = append(nodeIDs, nodeID)
+				// 		nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
+
+				// 		if pbf.Verbose {
+				// 			fmt.Println("  ->", nodeID, member.Lat, member.Lon)
+				// 		}
+				// 	} else if member.Type == "way" {
+				// 		way, found := lo.Find(pbf.ways, func(way *RichWay) bool {
+				// 			return way.Way.ID == member.ElementID().WayID()
+				// 		})
+
+				// 		if found {
+				// 			if pbf.Verbose {
+				// 				j, _ := json.Marshal(way)
+				// 				fmt.Println("  ->", string(j))
+				// 			}
+
+				// 			nodeIDs = append(nodeIDs, way.NodeIDs...)
+
+				// 			for _, nodeID := range way.NodeIDs {
+				// 				nodes, points = pbf.updateNodesAndPoints(nodeID, nodes, points)
+				// 			}
+				// 		}
+				// 	}
+
+				// 	if member.Role == "outer" {
+				// 		outer = append(outer, points...)
+				// 	} else {
+				// 		rings = append(rings, points)
+				// 	}
+				// }
 
 				if len(outer) > 0 {
 					temp := make([]Point, 0)
@@ -164,7 +201,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 					Points:  append(outerRings, rings...),
 				}
 
-				if pbf.Verbose {
+				if pbf.Verbose || relation.ID == 166150 {
 					j, _ := json.Marshal(newWay)
 					fmt.Println(" ->", string(j))
 				}
@@ -237,4 +274,119 @@ func (pbf *PBF) Ways() []*RichWay {
 
 func (pbf *PBF) Relations() []*RichWay {
 	return pbf.relations
+}
+
+func (pbf *PBF) findWay(wayMap map[osm.WayID]*RichWay, r osm.Member) (*RichWay, map[osm.WayID]*RichWay) {
+	var way *RichWay = nil
+	found := false
+
+	if way, found = wayMap[r.ElementID().WayID()]; !found {
+		way, found = lo.Find(pbf.ways, func(way *RichWay) bool {
+			return way.Way.ID == r.ElementID().WayID()
+		})
+
+		if !found {
+			return nil, wayMap
+		}
+
+		wayMap[way.Way.ID] = way
+	}
+
+	return way, wayMap
+}
+
+// TODO: This probably needs some tweaking, because some relations still don't show.
+func (pbf *PBF) sortRelationMembers(members osm.Members) (osm.Members, map[osm.WayID]*RichWay) {
+	var member *osm.Member = nil
+	var memberWay *RichWay = nil
+	outerMembers := []osm.Member{}
+	innerMembers := []osm.Member{}
+	wayMap := make(map[osm.WayID]*RichWay)
+	isFirst := true
+
+	remaining := append(osm.Members{}, members...)
+
+	for i := 0; i < len(members); i++ {
+		m := members[i]
+
+		if m.Type != "way" {
+			continue
+		} else if m.Role != "outer" {
+			innerMembers = append(innerMembers, m)
+			_, wayMap = pbf.findWay(wayMap, m)
+			continue
+		}
+
+		// Here we're looking at outer ways. These are what might need sorting, because sometimes the
+		// ways that comprise them will not be implemented in order or clockwise.
+
+		if member == nil {
+			member = &m
+			remaining = append(osm.Members{}, members[i+1:]...)
+			// Nil check here?
+			memberWay, wayMap = pbf.findWay(wayMap, m)
+			outerMembers = append(outerMembers, m)
+			continue
+		}
+
+		newRemaining := make([]osm.Member, 0)
+
+		for j := 0; j < len(remaining); j++ {
+			r := remaining[j]
+			var way *RichWay = nil
+
+			if r.Type != "way" {
+				continue
+			}
+
+			way, wayMap = pbf.findWay(wayMap, r)
+
+			if way == nil {
+				continue
+			} else if r.Role != "outer" {
+				innerMembers = append(innerMembers, r)
+				_, wayMap = pbf.findWay(wayMap, r)
+				continue
+			}
+
+			first := way.Points[0][0]
+			last := way.Points[0][len(way.Points[0])-1]
+			mFirst := memberWay.Points[0][0]
+			mLast := memberWay.Points[0][len(memberWay.Points[0])-1]
+
+			if mLast.Lat == first.Lat && mLast.Lon == first.Lon ||
+				mLast.Lat == last.Lat && mLast.Lon == last.Lon {
+				member = &r
+				memberWay = way
+				outerMembers = append(outerMembers, r)
+				newRemaining = append(newRemaining, remaining[j+1:]...)
+				isFirst = false
+				break
+			} else if (mFirst.Lat == first.Lat && mFirst.Lon == first.Lon ||
+				mFirst.Lat == last.Lat && mFirst.Lon == last.Lon) && !isFirst {
+				member = &r
+				way.Points[0] = lo.Reverse(way.Points[0])
+				memberWay = way
+				outerMembers = append(outerMembers, r)
+				newRemaining = append(newRemaining, remaining[j+1:]...)
+				isFirst = false
+				break
+			} else {
+				newRemaining = append(newRemaining, r)
+			}
+		}
+
+		remaining = newRemaining
+	}
+
+	sorted := append(outerMembers, innerMembers...)
+	remaining = lo.Filter(remaining, func(m osm.Member, _ int) bool {
+		_, found := lo.Find(sorted, func(sm osm.Member) bool {
+			return m.Ref == sm.Ref
+		})
+
+		return m.Type != "node" && !found
+	})
+
+	return append(sorted, remaining...), wayMap
 }

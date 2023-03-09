@@ -212,7 +212,7 @@ func (img *Image) getStyleFromTags(way *RichWay) (style *config.FeatureStyle) {
 
 		if tempStyle != nil {
 			if tempStyle.ShouldExclude(tagMap, way.Way.ID) {
-				break
+				continue
 			}
 
 			style = tempStyle
