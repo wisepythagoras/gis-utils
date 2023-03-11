@@ -201,7 +201,7 @@ func (pbf *PBF) Load(f io.Reader) error {
 					Points:  append(outerRings, rings...),
 				}
 
-				if pbf.Verbose || relation.ID == 166150 {
+				if pbf.Verbose {
 					j, _ := json.Marshal(newWay)
 					fmt.Println(" ->", string(j))
 				}
@@ -354,18 +354,16 @@ func (pbf *PBF) sortRelationMembers(members osm.Members) (osm.Members, map[osm.W
 			mFirst := memberWay.Points[0][0]
 			mLast := memberWay.Points[0][len(memberWay.Points[0])-1]
 
-			if mLast.Lat == first.Lat && mLast.Lon == first.Lon ||
-				mLast.Lat == last.Lat && mLast.Lon == last.Lon {
+			if (mLast.Lat == first.Lat && mLast.Lon == first.Lon ||
+				mLast.Lat == last.Lat && mLast.Lon == last.Lon) || ((mFirst.Lat == first.Lat && mFirst.Lon == first.Lon ||
+				mFirst.Lat == last.Lat && mFirst.Lon == last.Lon) && !isFirst) {
 				member = &r
-				memberWay = way
-				outerMembers = append(outerMembers, r)
-				newRemaining = append(newRemaining, remaining[j+1:]...)
-				isFirst = false
-				break
-			} else if (mFirst.Lat == first.Lat && mFirst.Lon == first.Lon ||
-				mFirst.Lat == last.Lat && mFirst.Lon == last.Lon) && !isFirst {
-				member = &r
-				way.Points[0] = lo.Reverse(way.Points[0])
+
+				if (mFirst.Lat == first.Lat && mFirst.Lon == first.Lon ||
+					mFirst.Lat == last.Lat && mFirst.Lon == last.Lon) && !isFirst {
+					way.Points[0] = lo.Reverse(way.Points[0])
+				}
+
 				memberWay = way
 				outerMembers = append(outerMembers, r)
 				newRemaining = append(newRemaining, remaining[j+1:]...)
