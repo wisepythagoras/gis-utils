@@ -13,6 +13,8 @@ import (
 	"github.com/wroge/wgs84"
 )
 
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon
+
 type PBF struct {
 	nodeMap   map[osm.NodeID]*osm.Node
 	ways      []*RichWay
@@ -102,7 +104,8 @@ func (pbf *PBF) Load(f io.Reader) error {
 
 				sortedMembers, wayMap := pbf.sortRelationMembers(relation.Members)
 
-				if pbf.Verbose || relation.ID == 166150 {
+				if pbf.Verbose {
+					fmt.Println(o.ObjectID().Ref(), o.ObjectID().Type(), o.ObjectID().String())
 					j, _ := json.Marshal(sortedMembers)
 					fmt.Println(" ->", len(sortedMembers), len(relation.Members), string(j))
 					j, _ = json.Marshal(relation.Members)
